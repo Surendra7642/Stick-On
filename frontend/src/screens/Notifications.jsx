@@ -1,7 +1,26 @@
-import { useState } from 'react';
-
+import { useState, useEffect } from 'react';
+import { api } from '../api';
 import StatusBar from './StatusBar';
+
 export default function Notifications({ onBack, onNext, onNavigate }) {
+  const [notifications, setNotifications] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    async function loadNotifications() {
+      try {
+        const data = await api.fetchNotifications();
+        setNotifications(data || []);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadNotifications();
+  }, []);
+
   return (
     <div className="screen notifications-container fade-in scrollable">
       <StatusBar />
@@ -12,44 +31,23 @@ export default function Notifications({ onBack, onNext, onNavigate }) {
       <h1 className="title left-align" style={{ fontSize: '26px' }}>Notifications</h1>
 
       <div className="notifications-list" style={{ marginTop: '24px' }}>
-        
-        <div className="notification-item unread">
-          <span className="blue-dot"></span>
-          <div className="notif-content">
-            <p className="notif-text">Kirana Store wants to hire you for Helper / Packing</p>
-            <span className="notif-time">2 min ago</span>
-          </div>
-        </div>
+        {isLoading && <p style={{ textAlign: 'center', padding: '16px' }}>Loading alerts...</p>}
+        {error && <p style={{ color: '#9B2C2C', textAlign: 'center', padding: '16px' }}>⚠️ {error}</p>}
+        {!isLoading && !error && notifications.length === 0 && (
+          <p style={{ textAlign: 'center', color: '#6B6075', padding: '24px' }}>No new notifications.</p>
+        )}
 
-        <div className="notification-item unread" onClick={onNext}>
-          <span className="blue-dot"></span>
-          <div className="notif-content">
-            <p className="notif-text">New job posted near you: Cashier at Fashion Zone, 0.9 km</p>
-            <span className="notif-time">1 hr ago</span>
+        {notifications.map((n, idx) => (
+          <div key={idx} className="notification-item unread">
+            <span className="blue-dot"></span>
+            <div className="notif-content">
+              <p className="notif-text">
+                <strong>{n.title}</strong> — {n.message}
+              </p>
+              <span className="notif-time">{n.time}</span>
+            </div>
           </div>
-        </div>
-
-        <div className="notification-item">
-          <div className="notif-content">
-            <p className="notif-text">Your application at Bawarchi Bakery was viewed</p>
-            <span className="notif-time">Yesterday</span>
-          </div>
-        </div>
-
-        <div className="notification-item">
-          <div className="notif-content">
-            <p className="notif-text">3 new jobs match your profile in Kukatpally</p>
-            <span className="notif-time">2 days ago</span>
-          </div>
-        </div>
-
-        <div className="notification-item">
-          <div className="notif-content">
-            <p className="notif-text">Profile 100% complete — you're getting more visibility</p>
-            <span className="notif-time">3 days ago</span>
-          </div>
-        </div>
-
+        ))}
       </div>
 
       <div className="bottom-nav">

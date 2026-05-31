@@ -26,8 +26,11 @@ function App() {
   const [currentScreen, setCurrentScreen] = useState('splash');
   const [direction, setDirection] = useState('forward');
   const [flowType, setFlowType] = useState('signup'); // 'signup' or 'login'
-  const [userRole, setUserRole] = useState('work'); // 'work', 'shop', 'brand'
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [userRole, setUserRole] = useState(localStorage.getItem('userRole') || 'work');
+  const [phoneNumber, setPhoneNumber] = useState(localStorage.getItem('userPhone') || '');
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [selectedApplication, setSelectedApplication] = useState(null);
+  const [selectedApplicationForOffer, setSelectedApplicationForOffer] = useState(null);
 
   const navigate = (screen) => {
     setDirection('forward');
@@ -40,17 +43,36 @@ function App() {
   };
 
   const handleSignOut = () => {
+    localStorage.removeItem('userPhone');
+    localStorage.removeItem('userRole');
+    setPhoneNumber('');
+    setUserRole('work');
+    setSelectedJob(null);
+    setSelectedApplication(null);
+    setSelectedApplicationForOffer(null);
     setDirection('backward');
     setFlowType('signup');
-    setPhoneNumber('');
     setCurrentScreen('splash');
   };
 
-  const handleOTPComplete = () => {
+  const handleOTPComplete = (verifiedPhone, verifiedRole) => {
+    // Save to state & localstorage
+    localStorage.setItem('userPhone', verifiedPhone);
+    
+    // Map backend roles (SEEKER -> work, MERCHANT -> shop)
+    let mappedRole = 'work';
+    if (verifiedRole === 'MERCHANT') {
+      mappedRole = 'shop';
+    }
+    localStorage.setItem('userRole', mappedRole);
+    
+    setPhoneNumber(verifiedPhone);
+    setUserRole(mappedRole);
+
     if (flowType === 'login') {
-      navigate(userRole === 'work' ? 'browse' : 'dashboard');
+      navigate(mappedRole === 'work' ? 'browse' : 'dashboard');
     } else {
-      navigate(userRole === 'work' ? 'profile' : 'merchant_verify');
+      navigate(mappedRole === 'work' ? 'profile' : 'merchant_verify');
     }
   };
 
@@ -82,30 +104,151 @@ function App() {
       {currentScreen === 'otp' && (
         <OTPVerification 
           phoneNumber={phoneNumber}
+          flowType={flowType}
+          userRole={userRole}
           onNext={handleOTPComplete} 
           onBack={() => goBack('role')} 
         />
       )}
-      {currentScreen === 'profile' && <ProfileSetup onNext={() => navigate('browse')} onBack={() => goBack('otp')} />}
+      {currentScreen === 'profile' && (
+        <ProfileSetup 
+          onNext={() => navigate('browse')} 
+          onBack={() => goBack('otp')} 
+        />
+      )}
       
-      {currentScreen === 'browse' && <JobBrowser onNext={() => navigate('map')} onBack={() => goBack('profile')} onNavigate={navigate} />}
-      {currentScreen === 'map' && <MapView onNext={() => navigate('detail')} onBack={() => goBack('browse')} onNavigate={navigate} />}
-      {currentScreen === 'detail' && <JobDetail onNext={() => navigate('match')} onReport={() => navigate('report_job')} onBack={() => goBack('map')} onNavigate={navigate} />}
-      {currentScreen === 'match' && <SmartJobMatch onNext={() => navigate('apps')} onBack={() => goBack('detail')} onNavigate={navigate} />}
-      {currentScreen === 'apps' && <MyApplications onNext={() => navigate('offer')} onBack={() => goBack('match')} onNavigate={navigate} />}
-      {currentScreen === 'offer' && <OfferLetter onNext={() => navigate('hired')} onBack={() => goBack('apps')} onNavigate={navigate} />}
+      {currentScreen === 'browse' && (
+        <JobBrowser 
+          onNext={() => navigate('map')} 
+          onBack={() => goBack('profile')} 
+          onNavigate={navigate}
+          onSelectJob={(job) => setSelectedJob(job)}
+        />
+      )}
+      {currentScreen === 'map' && (
+        <MapView 
+          onNext={() => navigate('detail')} 
+          onBack={() => goBack('browse')} 
+          onNavigate={navigate} 
+          selectedJob={selectedJob}
+        />
+      )}
+      {currentScreen === 'detail' && (
+        <JobDetail 
+          job={selectedJob}
+          onNext={() => navigate('match')} 
+          onReport={() => navigate('report_job')} 
+          onBack={() => goBack('map')} 
+          onNavigate={navigate} 
+        />
+      )}
+      {currentScreen === 'match' && (
+        <SmartJobMatch 
+          onNext={() => navigate('apps')} 
+          onBack={() => goBack('detail')} 
+          onNavigate={navigate} 
+        />
+      )}
+      {currentScreen === 'apps' && (
+        <MyApplications 
+          onNext={() => navigate('offer')} 
+          onBack={() => goBack('match')} 
+          onNavigate={navigate}
+          onSelectApplication={(app) => {
+            setSelectedApplication(app);
+            setSelectedJob(app.job);
+          }}
+        />
+      )}
+      {currentScreen === 'offer' && (
+        <OfferLetter 
+          application={selectedApplication}
+          onNext={() => navigate('hired')} 
+          onBack={() => goBack('apps')} 
+          onNavigate={navigate} 
+        />
+      )}
 
-      {currentScreen === 'hired' && <HiredSuccess onNext={() => navigate('notifications')} onBack={() => goBack('offer')} onNavigate={navigate} />}
-      {currentScreen === 'notifications' && <Notifications onNext={() => navigate('myprofile')} onBack={() => goBack('hired')} onNavigate={navigate} />}
-      {currentScreen === 'myprofile' && <MyProfile onNext={() => navigate('profile')} onBack={() => goBack('notifications')} onNavigate={navigate} onSignOut={handleSignOut} />}
-      {currentScreen === 'merchant_verify' && <MerchantVerify onNext={() => navigate('merchant_success')} onBack={() => goBack('splash')} onNavigate={navigate} />}
-      {currentScreen === 'merchant_success' && <MerchantSuccess onNext={() => navigate('post_job')} onBack={() => goBack('merchant_verify')} onNavigate={navigate} />}
+      {currentScreen === 'hired' && (
+        <HiredSuccess 
+          application={selectedApplication}
+          onNext={() => navigate('notifications')} 
+          onBack={() => goBack('offer')} 
+          onNavigate={navigate} 
+        />
+      )}
+      {currentScreen === 'notifications' && (
+        <Notifications 
+          onNext={() => navigate('myprofile')} 
+          onBack={() => goBack('hired')} 
+          onNavigate={navigate} 
+        />
+      )}
+      {currentScreen === 'myprofile' && (
+        <MyProfile 
+          onNext={() => navigate('profile')} 
+          onBack={() => goBack('notifications')} 
+          onNavigate={navigate} 
+          onSignOut={handleSignOut} 
+        />
+      )}
+      {currentScreen === 'merchant_verify' && (
+        <MerchantVerify 
+          onNext={() => navigate('merchant_success')} 
+          onBack={() => goBack('splash')} 
+          onNavigate={navigate} 
+        />
+      )}
+      {currentScreen === 'merchant_success' && (
+        <MerchantSuccess 
+          onNext={() => navigate('post_job')} 
+          onBack={() => goBack('merchant_verify')} 
+          onNavigate={navigate} 
+        />
+      )}
 
-      {currentScreen === 'post_job' && <MerchantPostJob onNext={() => navigate('dashboard')} onBack={() => goBack('merchant_success')} onNavigate={navigate} />}
-      {currentScreen === 'view_applicants' && <MerchantApplicants onNext={() => navigate('send_offer')} onBack={() => navigate('dashboard')} onNavigate={navigate} />}
-      {currentScreen === 'send_offer' && <MerchantSendOffer onNext={() => navigate('dashboard')} onBack={() => goBack('view_applicants')} onNavigate={navigate} />}
-      {currentScreen === 'report_job' && <SeekerReportJob onNext={() => goBack('detail')} onBack={() => goBack('detail')} onNavigate={navigate} />}
-      {currentScreen === 'dashboard' && <MerchantDashboard onPostJob={() => navigate('post_job')} onApplicants={() => navigate('view_applicants')} onBack={() => goBack('splash')} onNavigate={navigate} onSignOut={handleSignOut} />}
+      {currentScreen === 'post_job' && (
+        <MerchantPostJob 
+          onNext={() => navigate('dashboard')} 
+          onBack={() => goBack('merchant_success')} 
+          onNavigate={navigate} 
+        />
+      )}
+      {currentScreen === 'view_applicants' && (
+        <MerchantApplicants 
+          onNext={(app) => {
+            setSelectedApplicationForOffer(app);
+            navigate('send_offer');
+          }} 
+          onBack={() => navigate('dashboard')} 
+          onNavigate={navigate} 
+        />
+      )}
+      {currentScreen === 'send_offer' && (
+        <MerchantSendOffer 
+          application={selectedApplicationForOffer}
+          onNext={() => navigate('dashboard')} 
+          onBack={() => goBack('view_applicants')} 
+          onNavigate={navigate} 
+        />
+      )}
+      {currentScreen === 'report_job' && (
+        <SeekerReportJob 
+          job={selectedJob}
+          onNext={() => goBack('detail')} 
+          onBack={() => goBack('detail')} 
+          onNavigate={navigate} 
+        />
+      )}
+      {currentScreen === 'dashboard' && (
+        <MerchantDashboard 
+          onPostJob={() => navigate('post_job')} 
+          onApplicants={() => navigate('view_applicants')} 
+          onBack={() => goBack('splash')} 
+          onNavigate={navigate} 
+          onSignOut={handleSignOut} 
+        />
+      )}
     </div>
   );
 }

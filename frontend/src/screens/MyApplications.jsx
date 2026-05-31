@@ -1,7 +1,56 @@
-import { useState } from 'react';
-
+import { useState, useEffect } from 'react';
+import { api } from '../api';
 import StatusBar from './StatusBar';
-export default function MyApplications({ onNext, onBack, onNavigate }) {
+
+export default function MyApplications({ onNext, onBack, onNavigate, onSelectApplication }) {
+  const [applications, setApplications] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    async function loadApplications() {
+      try {
+        const data = await api.fetchMyApplications();
+        setApplications(data || []);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadApplications();
+  }, []);
+
+  const getStatusClass = (status) => {
+    switch (status) {
+      case 'HIRED': return 'hired';
+      case 'SHORTLISTED': return 'viewed';
+      case 'REJECTED': return 'closed';
+      default: return 'pending';
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'HIRED': return 'Hired!';
+      case 'SHORTLISTED': return 'Shortlisted';
+      case 'REJECTED': return 'Closed';
+      default: return 'Applied';
+    }
+  };
+
+  const formatTime = (dateString) => {
+    if (!dateString) return 'Just now';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    } catch {
+      return 'Recent';
+    }
+  };
+
+  const hiredApp = applications.find(app => app.status === 'HIRED');
+
   return (
     <div className="screen apps-container fade-in scrollable">
       <StatusBar />
@@ -12,47 +61,44 @@ export default function MyApplications({ onNext, onBack, onNavigate }) {
       <h1 className="title left-align" style={{ fontSize: '26px' }}>My applications</h1>
 
       <div className="apps-list" style={{ marginTop: '24px' }}>
-        
-        <div className="app-item">
-          <div className="app-info">
-            <h4 className="app-role">Delivery partner</h4>
-            <p className="app-meta">Domino's · Today, 2:30 PM</p>
-          </div>
-          <span className="app-status viewed">Viewed</span>
-        </div>
+        {isLoading && <p style={{ textAlign: 'center', padding: '16px' }}>Loading applications...</p>}
+        {error && <p style={{ color: '#9B2C2C', textAlign: 'center', padding: '16px' }}>⚠️ {error}</p>}
+        {!isLoading && !error && applications.length === 0 && (
+          <p style={{ textAlign: 'center', color: '#6B6075', padding: '24px' }}>You haven't applied for any jobs yet.</p>
+        )}
 
-        <div className="app-item">
-          <div className="app-info">
-            <h4 className="app-role">Counter assistant</h4>
-            <p className="app-meta">Bawarchi Bakery · Yesterday</p>
+        {applications.map(app => (
+          <div key={app.id} className="app-item">
+            <div className="app-info">
+              <h4 className="app-role">{app.job?.roleTitle || 'Job Role'}</h4>
+              <p className="app-meta">
+                {app.job?.shopName || 'Shop'} · {formatTime(app.appliedDate)}
+              </p>
+            </div>
+            <span className={`app-status ${getStatusClass(app.status)}`}>
+              {getStatusText(app.status)}
+            </span>
           </div>
-          <span className="app-status pending">Pending</span>
-        </div>
-
-        <div className="app-item">
-          <div className="app-info">
-            <h4 className="app-role">Helper / packing</h4>
-            <p className="app-meta">Kirana Store · 2 days ago</p>
-          </div>
-          <span className="app-status hired">Hired!</span>
-        </div>
-
-        <div className="app-item">
-          <div className="app-info">
-            <h4 className="app-role">Weekend cashier</h4>
-            <p className="app-meta">Fashion Zone · 1 week ago</p>
-          </div>
-          <span className="app-status closed">Closed</span>
-        </div>
-
+        ))}
       </div>
 
-      <div className="action-card" style={{ marginTop: 'auto', marginBottom: '16px' }}>
-        <p className="action-text">Kirana Store wants to hire you! Tap to confirm and get their number.</p>
-        <button className="primary-button green-button" style={{ marginBottom: 0 }} onClick={onNext}>
-          Confirm & get contact
-        </button>
-      </div>
+      {hiredApp && (
+        <div className="action-card" style={{ marginTop: 'auto', marginBottom: '16px' }}>
+          <p className="action-text">
+            {hiredApp.job?.shopName || 'Merchant'} wants to hire you! Tap to view details and accept.
+          </p>
+          <button 
+            className="primary-button green-button" 
+            style={{ marginBottom: 0 }} 
+            onClick={() => {
+              onSelectApplication(hiredApp);
+              onNext();
+            }}
+          >
+            Confirm & get contact
+          </button>
+        </div>
+      )}
 
       <div className="bottom-nav">
         <div className="nav-item" onClick={() => onNavigate && onNavigate('browse')}>

@@ -1,13 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
-
+import { api } from '../api';
 import StatusBar from './StatusBar';
 
 export default function MerchantVerify({ onNext, onBack }) {
   const [docType, setDocType] = useState('gst');
   const [selectedFile, setSelectedFile] = useState(null);
   const [isPending, setIsPending] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(60);
+  const [timeLeft, setTimeLeft] = useState(10); // Reduced to 10s for snappy testing
+  
   const fileInputRef = useRef(null);
+  const businessNameRef = useRef(null);
 
   useEffect(() => {
     let timer;
@@ -16,6 +18,7 @@ export default function MerchantVerify({ onNext, onBack }) {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             clearInterval(timer);
+            // Finish verification
             onNext();
             return 0;
           }
@@ -42,12 +45,32 @@ export default function MerchantVerify({ onNext, onBack }) {
     }
   };
 
-  const handleVerifySubmit = () => {
+  const handleVerifySubmit = async () => {
     if (!selectedFile) {
       alert('Please upload a document to proceed with verification.');
       return;
     }
     setIsPending(true);
+    try {
+      await api.verifyMerchantShop({
+        shopName: businessNameRef.current?.value || 'Shoppers Stop — Banjara Hills',
+        addressLocation: 'Banjara Hills, Hyderabad'
+      });
+    } catch (err) {
+      console.error('Failed to submit shop verification to backend:', err);
+    }
+  };
+
+  const handleBypass = async () => {
+    try {
+      await api.verifyMerchantShop({
+        shopName: businessNameRef.current?.value || 'Shoppers Stop — Banjara Hills',
+        addressLocation: 'Banjara Hills, Hyderabad'
+      });
+    } catch (err) {
+      console.error('Bypass verification failed:', err);
+    }
+    onNext();
   };
 
   if (isPending) {
@@ -81,27 +104,27 @@ export default function MerchantVerify({ onNext, onBack }) {
               <span style={{ fontSize: '14px', color: '#211A29' }}>Document upload received</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ color: timeLeft <= 50 ? '#2D6A4F' : '#5C3E8A', fontWeight: 'bold' }}>
-                {timeLeft <= 50 ? '✓' : '●'}
+              <span style={{ color: timeLeft <= 8 ? '#2D6A4F' : '#5C3E8A', fontWeight: 'bold' }}>
+                {timeLeft <= 8 ? '✓' : '●'}
               </span>
-              <span style={{ fontSize: '14px', color: '#211A29', fontWeight: timeLeft > 50 ? 500 : 400 }}>
-                Extracting business details {timeLeft > 50 && '...'}
+              <span style={{ fontSize: '14px', color: '#211A29', fontWeight: timeLeft > 8 ? 500 : 400 }}>
+                Extracting business details {timeLeft > 8 && '...'}
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ color: timeLeft <= 25 ? '#2D6A4F' : '#5C3E8A', fontWeight: 'bold' }}>
-                {timeLeft <= 25 ? '✓' : timeLeft <= 50 ? '●' : '○'}
+              <span style={{ color: timeLeft <= 4 ? '#2D6A4F' : '#5C3E8A', fontWeight: 'bold' }}>
+                {timeLeft <= 4 ? '✓' : timeLeft <= 8 ? '●' : '○'}
               </span>
-              <span style={{ fontSize: '14px', color: '#211A29', fontWeight: timeLeft <= 50 && timeLeft > 25 ? 500 : 400 }}>
-                Matching GST details with register {timeLeft <= 50 && timeLeft > 25 && '...'}
+              <span style={{ fontSize: '14px', color: '#211A29', fontWeight: timeLeft <= 8 && timeLeft > 4 ? 500 : 400 }}>
+                Matching GST details with register {timeLeft <= 8 && timeLeft > 4 && '...'}
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span style={{ color: timeLeft === 0 ? '#2D6A4F' : '#64748b', fontWeight: 'bold' }}>
-                {timeLeft === 0 ? '✓' : timeLeft <= 25 ? '●' : '○'}
+                {timeLeft === 0 ? '✓' : timeLeft <= 4 ? '●' : '○'}
               </span>
-              <span style={{ fontSize: '14px', color: '#211A29', fontWeight: timeLeft <= 25 && timeLeft > 0 ? 500 : 400 }}>
-                Finalizing account verification {timeLeft <= 25 && timeLeft > 0 && '...'}
+              <span style={{ fontSize: '14px', color: '#211A29', fontWeight: timeLeft <= 4 && timeLeft > 0 ? 500 : 400 }}>
+                Finalizing account verification {timeLeft <= 4 && timeLeft > 0 && '...'}
               </span>
             </div>
           </div>
@@ -109,7 +132,7 @@ export default function MerchantVerify({ onNext, onBack }) {
 
         <button 
           className="primary-button green-button" 
-          onClick={onNext}
+          onClick={handleBypass}
           style={{ marginTop: 'auto', marginBottom: '24px' }}
         >
           Verify Instantly (Bypass)
@@ -219,11 +242,15 @@ export default function MerchantVerify({ onNext, onBack }) {
 
       <div className="form-group" style={{ marginTop: '24px', marginBottom: '24px' }}>
         <label className="form-label" style={{ color: '#211A29', fontWeight: 500 }}>Business name (must match doc)</label>
-        <input type="text" className="form-input" defaultValue="Shoppers Stop — Banjara Hills" style={{ borderBottomColor: '#E5DFD5' }} />
+        <input ref={businessNameRef} type="text" className="form-input" defaultValue="Shoppers Stop — Banjara Hills" style={{ borderBottomColor: '#E5DFD5' }} />
       </div>
 
       <button className="primary-button" style={{ marginBottom: '16px' }} onClick={handleVerifySubmit}>
         Submit for verification &rarr;
+      </button>
+
+      <button className="primary-button green-button" style={{ marginBottom: '16px' }} onClick={handleBypass}>
+        Verify Instantly (Bypass)
       </button>
 
       <p className="call-merchant" style={{ textAlign: 'center', color: '#211A29', fontWeight: 500, fontSize: '13px' }}>
@@ -232,4 +259,3 @@ export default function MerchantVerify({ onNext, onBack }) {
     </div>
   );
 }
-

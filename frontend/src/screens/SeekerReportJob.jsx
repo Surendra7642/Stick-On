@@ -1,7 +1,26 @@
 import { useState } from 'react';
-
+import { api } from '../api';
 import StatusBar from './StatusBar';
-export default function SeekerReportJob({ onNext, onBack }) {
+
+export default function SeekerReportJob({ job, onNext, onBack }) {
+  const [isReporting, setIsReporting] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleReport = async () => {
+    if (!job) return;
+    setIsReporting(true);
+    setError(null);
+    try {
+      await api.reportJob(job.id);
+      alert('Job reported successfully. Our trust and safety team will review it shortly.');
+      onNext();
+    } catch (err) {
+      setError(err.message || 'Failed to submit report.');
+    } finally {
+      setIsReporting(false);
+    }
+  };
+
   return (
     <div className="screen report-container fade-in scrollable">
       <StatusBar />
@@ -15,8 +34,12 @@ export default function SeekerReportJob({ onNext, onBack }) {
       </p>
 
       <div className="reported-job" style={{ marginBottom: '32px' }}>
-        <h3 style={{ fontSize: '16px', fontWeight: 500, color: '#211A29', marginBottom: '4px' }}>Delivery Partner — Fast Foods Hub</h3>
-        <p style={{ fontSize: '14px', color: '#211A29', marginBottom: '8px' }}>Dilsukhnagar · Unverified merchant</p>
+        <h3 style={{ fontSize: '16px', fontWeight: 500, color: '#211A29', marginBottom: '4px' }}>
+          {job ? job.roleTitle : 'Delivery Partner'} — {job ? job.shopName : 'Fast Foods Hub'}
+        </h3>
+        <p style={{ fontSize: '14px', color: '#211A29', marginBottom: '8px' }}>
+          {job ? job.addressLocation : 'Unverified location'}
+        </p>
         <span className="job-badge" style={{ background: '#FDF2F2', color: '#9B2C2C' }}>Not verified</span>
       </div>
 
@@ -54,12 +77,19 @@ export default function SeekerReportJob({ onNext, onBack }) {
       <div className="form-group" style={{ marginBottom: '32px' }}>
         <label className="form-label" style={{ color: '#211A29', fontWeight: 500, fontSize: '13px' }}>Additional details</label>
         <p style={{ margin: 0, padding: '12px 0 8px 16px', borderBottom: '1px solid #E5DFD5', width: '100%', color: '#211A29', fontSize: '15px' }}>
-          They asked me to pay ₹500 registration fee before joining.
+          They asked me to pay registration fee before joining.
         </p>
       </div>
 
-      <button className="primary-button" style={{ background: '#FDF2F2', color: '#9B2C2C', border: '1px solid #F8D7DA', marginTop: 'auto', marginBottom: '16px' }} onClick={onNext}>
-        Submit report
+      {error && <p style={{ color: '#9B2C2C', fontSize: '14px', marginBottom: '16px' }}>⚠️ {error}</p>}
+
+      <button 
+        className="primary-button" 
+        style={{ background: '#FDF2F2', color: '#9B2C2C', border: '1px solid #F8D7DA', marginTop: 'auto', marginBottom: '16px' }} 
+        onClick={handleReport}
+        disabled={isReporting}
+      >
+        {isReporting ? 'Submitting...' : 'Submit report'}
       </button>
 
       <p className="call-merchant" style={{ textAlign: 'center', color: '#211A29', fontWeight: 500, fontSize: '13px', marginBottom: '24px' }}>

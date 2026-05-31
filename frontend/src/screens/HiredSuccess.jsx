@@ -1,7 +1,8 @@
-import { useState } from 'react';
-
 import StatusBar from './StatusBar';
-export default function HiredSuccess({ onNext, onBack }) {
+
+export default function HiredSuccess({ application, onNext, onBack }) {
+  const job = application?.job;
+
   return (
     <div className="screen hired-container fade-in scrollable">
       <StatusBar />
@@ -14,32 +15,34 @@ export default function HiredSuccess({ onNext, onBack }) {
       </div>
 
       <h1 className="title" style={{ fontSize: '28px', marginBottom: '8px' }}>You're hired!</h1>
-      <p className="subtitle" style={{ color: '#211A29', marginBottom: '32px' }}>Kirana Store confirmed your selection for Helper / Packing</p>
+      <p className="subtitle" style={{ color: '#211A29', marginBottom: '32px' }}>
+        {job?.shopName || 'Kirana Store'} confirmed your selection for {job?.roleTitle || 'Helper / Packing'}
+      </p>
 
       <div className="detail-table" style={{ borderTop: 'none' }}>
         <div className="detail-row" style={{ borderBottom: 'none', padding: '10px 0' }}>
           <span className="detail-key">Shop</span>
-          <span className="detail-val">Kirana Store, KPHB</span>
+          <span className="detail-val">{job?.shopName || 'Kirana Store'}, {job?.addressLocation || 'KPHB'}</span>
         </div>
         <div className="detail-row" style={{ borderBottom: 'none', padding: '10px 0' }}>
           <span className="detail-key">Role</span>
-          <span className="detail-val">Helper / Packing</span>
+          <span className="detail-val">{job?.roleTitle || 'Helper / Packing'}</span>
         </div>
         <div className="detail-row" style={{ borderBottom: 'none', padding: '10px 0' }}>
           <span className="detail-key">Start</span>
-          <span className="detail-val">Monday, 28 Apr</span>
+          <span className="detail-val">Monday, Immediate</span>
         </div>
         <div className="detail-row" style={{ borderBottom: 'none', padding: '10px 0' }}>
           <span className="detail-key">Shift</span>
-          <span className="detail-val">9 AM — 5 PM</span>
+          <span className="detail-val">{job?.shiftTiming || '9 AM — 5 PM'}</span>
         </div>
         <div className="detail-row" style={{ borderBottom: 'none', padding: '10px 0' }}>
           <span className="detail-key">Pay</span>
-          <span className="detail-val">₹350 / day</span>
+          <span className="detail-val">₹{job?.salary || '350'} / day</span>
         </div>
         <div className="detail-row" style={{ borderBottom: 'none', padding: '10px 0' }}>
           <span className="detail-key">Contact</span>
-          <span className="detail-val" style={{ color: '#D4B06A', cursor: 'pointer' }}>📞 Show number</span>
+          <span className="detail-val" style={{ color: '#D4B06A', cursor: 'pointer' }}>📞 +91 99999 88888</span>
         </div>
       </div>
 

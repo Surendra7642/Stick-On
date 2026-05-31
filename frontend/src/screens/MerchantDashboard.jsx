@@ -54,22 +54,22 @@ export default function MerchantDashboard({ onBack, onNavigate, onSignOut, onPos
       <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '40px' }}>
         
         <div className="stat-card" style={{ textAlign: 'center' }}>
-          <h2 style={{ fontSize: '36px', fontFamily: '"Playfair Display", serif', color: '#342056', margin: '0 0 8px 0', fontWeight: 500 }}>{dashboardData.activeJobs}</h2>
+          <h2 style={{ fontSize: '36px', fontFamily: '"Playfair Display", serif', color: '#342056', margin: '0 0 8px 0', fontWeight: 500 }}>{dashboardData?.activeJobs || 0}</h2>
           <p style={{ margin: 0, fontSize: '14px', color: '#211A29' }}>Active jobs</p>
         </div>
 
         <div className="stat-card" style={{ textAlign: 'center', cursor: 'pointer' }} onClick={onApplicants}>
-          <h2 style={{ fontSize: '36px', fontFamily: '"Playfair Display", serif', color: '#5C3E8A', margin: '0 0 8px 0', fontWeight: 500 }}>{dashboardData.totalApplicants}</h2>
+          <h2 style={{ fontSize: '36px', fontFamily: '"Playfair Display", serif', color: '#5C3E8A', margin: '0 0 8px 0', fontWeight: 500 }}>{dashboardData?.totalApplicants || 0}</h2>
           <p style={{ margin: 0, fontSize: '14px', color: '#211A29' }}>Total applicants</p>
         </div>
 
         <div className="stat-card" style={{ textAlign: 'center' }}>
-          <h2 style={{ fontSize: '36px', fontFamily: '"Playfair Display", serif', color: '#2C2536', margin: '0 0 8px 0', fontWeight: 500 }}>{dashboardData.hiredCount}</h2>
+          <h2 style={{ fontSize: '36px', fontFamily: '"Playfair Display", serif', color: '#2C2536', margin: '0 0 8px 0', fontWeight: 500 }}>{dashboardData?.hiredCount || 0}</h2>
           <p style={{ margin: 0, fontSize: '14px', color: '#211A29' }}>Hired so far</p>
         </div>
 
         <div className="stat-card" style={{ textAlign: 'center' }}>
-          <h2 style={{ fontSize: '36px', fontFamily: '"Playfair Display", serif', color: '#D4B06A', margin: '0 0 8px 0', fontWeight: 500 }}>{dashboardData.trustScore}</h2>
+          <h2 style={{ fontSize: '36px', fontFamily: '"Playfair Display", serif', color: '#D4B06A', margin: '0 0 8px 0', fontWeight: 500 }}>{dashboardData?.trustScore || 90}</h2>
           <p style={{ margin: 0, fontSize: '14px', color: '#211A29' }}>Trust score</p>
         </div>
 
@@ -78,31 +78,18 @@ export default function MerchantDashboard({ onBack, onNavigate, onSignOut, onPos
       <h3 className="section-heading" style={{ fontSize: '16px', fontFamily: 'Inter, sans-serif', fontWeight: 500, color: '#211A29', marginBottom: '24px' }}>Active listings</h3>
 
       <div className="active-listings" style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '32px' }}>
-        
-        <div className="listing-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h4 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: 500, color: '#211A29' }}>Delivery Partner</h4>
-            <p style={{ margin: 0, fontSize: '13px', color: '#6B6075' }}>6 applied</p>
+        {(!dashboardData?.listings || dashboardData.listings.length === 0) && (
+          <p style={{ color: '#6B6075', fontSize: '14px', textAlign: 'center', padding: '16px 0' }}>No active listings posted yet.</p>
+        )}
+        {dashboardData?.listings && dashboardData.listings.map(job => (
+          <div key={job.id} className="listing-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h4 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: 500, color: '#211A29' }}>{job.roleTitle}</h4>
+              <p style={{ margin: 0, fontSize: '13px', color: '#6B6075' }}>{job.applicantCount || 0} applied</p>
+            </div>
+            <span className="job-badge" style={{ background: '#FAF6F0', color: '#5C3E8A', fontSize: '12px', cursor: 'pointer' }} onClick={onApplicants}>View</span>
           </div>
-          <span className="job-badge" style={{ background: '#FAF6F0', color: '#5C3E8A', fontSize: '12px', cursor: 'pointer' }} onClick={onApplicants}>View</span>
-        </div>
-
-        <div className="listing-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h4 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: 500, color: '#211A29' }}>Counter Staff</h4>
-            <p style={{ margin: 0, fontSize: '13px', color: '#6B6075' }}>4 applied</p>
-          </div>
-          <span className="job-badge" style={{ background: '#FAF6F0', color: '#D4B06A', fontSize: '12px' }}>2 slots left</span>
-        </div>
-
-        <div className="listing-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <h4 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: 500, color: '#211A29' }}>Weekend Cashier</h4>
-            <p style={{ margin: 0, fontSize: '13px', color: '#6B6075' }}>8 applied</p>
-          </div>
-          <span className="job-badge" style={{ background: '#FAF8F5', color: '#2C2536', fontSize: '12px' }}>1 slot left</span>
-        </div>
-
+        ))}
       </div>
 
       <button className="primary-button" style={{ marginTop: 'auto', marginBottom: '24px', padding: '16px 0', background: '#342056', color: 'white', border: 'none', borderRadius: '12px', fontSize: '16px', fontWeight: 500, width: '100%', cursor: 'pointer' }} onClick={onPostJob}>

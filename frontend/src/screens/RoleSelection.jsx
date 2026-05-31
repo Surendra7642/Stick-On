@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { api } from '../api';
 import StatusBar from './StatusBar';
 
 // Simulated DB of existing registered customers with their roles
@@ -85,27 +86,30 @@ export default function RoleSelection({ flowType, onNext, onBack, onRoleSelect }
     if (error) setError('');
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (phoneNumberOnly.length !== 10) {
       setError('Please enter a valid 10-digit mobile number');
       return;
     }
 
-    if (flowType === 'login') {
-      const customer = EXISTING_CUSTOMERS.find(c => c.phone === phoneNumberOnly);
-      if (!customer) {
-        setError('Declined: Mobile number is not registered. Please sign up first.');
-        return;
-      }
-
-      // Allow access and pass registered customer role to App routing
-      onRoleSelect && onRoleSelect(customer.role);
-    } else {
-      onRoleSelect && onRoleSelect(selectedRole);
-    }
-
+    const fullPhone = `${detectedPrefix} ${phoneNumberOnly}`;
     setError('');
-    onNext && onNext(`${detectedPrefix} ${phoneNumberOnly}`);
+
+    try {
+      const res = await api.sendOtp(fullPhone, flowType);
+      
+      // Log the OTP for easy copy-paste in testing
+      console.log(`[TESTING OTP] Code for ${fullPhone} is: ${res.otp}`);
+      alert(`OTP sent! For testing, your OTP is: ${res.otp}`);
+      
+      if (!isLogin) {
+        onRoleSelect && onRoleSelect(selectedRole);
+      }
+      
+      onNext && onNext(fullPhone);
+    } catch (err) {
+      setError(err.message || 'Error sending OTP. Please try again.');
+    }
   };
 
   const isLogin = flowType === 'login';

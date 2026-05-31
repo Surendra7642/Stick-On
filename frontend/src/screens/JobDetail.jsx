@@ -1,7 +1,32 @@
 import { useState } from 'react';
-
+import { api } from '../api';
 import StatusBar from './StatusBar';
-export default function JobDetail({ onBack, onNext, onReport, onNavigate }) {
+
+export default function JobDetail({ job, onBack, onNext, onReport, onNavigate }) {
+  const [isApplying, setIsApplying] = useState(false);
+  const [error, setError] = useState(null);
+
+  if (!job) {
+    return (
+      <div className="screen job-detail-container fade-in scrollable" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p>No job selected. <span onClick={onBack} style={{ color: '#5C3E8A', cursor: 'pointer', textDecoration: 'underline' }}>Go back</span></p>
+      </div>
+    );
+  }
+
+  const handleApply = async () => {
+    setIsApplying(true);
+    setError(null);
+    try {
+      await api.applyJob(job.id);
+      onNext(); // Proceed to SmartJobMatch screen
+    } catch (err) {
+      setError(err.message || 'Failed to apply for job.');
+    } finally {
+      setIsApplying(false);
+    }
+  };
+
   return (
     <div className="screen job-detail-container fade-in scrollable">
       <StatusBar />
@@ -14,27 +39,28 @@ export default function JobDetail({ onBack, onNext, onReport, onNavigate }) {
         <span className="like-icon">♡</span>
       </div>
 
-      <div className="hero-image-box">
-        <span className="hero-emoji">🍕</span>
+      <div className="hero-image-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#EBDCB9' }}>
+        <span className="hero-emoji" style={{ fontSize: '48px' }}>
+          {job.roleTitle && job.roleTitle.toLowerCase().includes('delivery') ? '🛵' : '🏪'}
+        </span>
       </div>
 
-      <h1 className="detail-role">Delivery Partner</h1>
-      <p className="detail-company">Domino's Pizza · Ameerpet, Hyderabad</p>
+      <h1 className="detail-role">{job.roleTitle}</h1>
+      <p className="detail-company">{job.shopName} · {job.addressLocation}</p>
 
       <div className="pills-row no-margin" style={{ marginBottom: '24px' }}>
-        <span className="job-badge">Inter OK</span>
-        <span className="job-badge" style={{ background: '#FAF8F5', color: '#5C3E8A' }}>10th OK</span>
+        <span className="job-badge" style={{ textTransform: 'capitalize' }}>{job.educationRequirement} OK</span>
         <span className="job-badge" style={{ background: '#EBDCB9', color: '#5C3E8A' }}>✓ Verified shop</span>
       </div>
 
       <div className="detail-table">
         <div className="detail-row">
           <span className="detail-key">Pay</span>
-          <span className="detail-val">₹600 / day</span>
+          <span className="detail-val">₹{job.salary} / day</span>
         </div>
         <div className="detail-row">
           <span className="detail-key">Shift</span>
-          <span className="detail-val">5 PM — 10 PM</span>
+          <span className="detail-val">{job.shiftTiming || 'Flexible'}</span>
         </div>
         <div className="detail-row">
           <span className="detail-key">Days</span>
@@ -42,11 +68,11 @@ export default function JobDetail({ onBack, onNext, onReport, onNavigate }) {
         </div>
         <div className="detail-row">
           <span className="detail-key">Slots open</span>
-          <span className="detail-val">3 positions</span>
+          <span className="detail-val">{job.openSlots} positions</span>
         </div>
         <div className="detail-row">
           <span className="detail-key">Distance</span>
-          <span className="detail-val">1.2 km</span>
+          <span className="detail-val">Nearby</span>
         </div>
         <div className="detail-row">
           <span className="detail-key">Joining</span>
@@ -54,12 +80,21 @@ export default function JobDetail({ onBack, onNext, onReport, onNavigate }) {
         </div>
       </div>
 
-      <div className="info-banner" style={{ marginBottom: '16px', padding: '12px' }}>
-        "Bike required. Freshers welcome. Ask for Mr. Suresh at counter."
-      </div>
+      {job.description && (
+        <div className="info-banner" style={{ marginBottom: '16px', padding: '12px' }}>
+          "{job.description}"
+        </div>
+      )}
 
-      <button className="primary-button green-button" style={{ marginTop: 0 }} onClick={onNext}>
-        Apply now
+      {error && <p style={{ color: '#9B2C2C', fontSize: '14px', marginBottom: '16px', textAlign: 'center' }}>⚠️ {error}</p>}
+
+      <button 
+        className="primary-button green-button" 
+        style={{ marginTop: 0 }} 
+        onClick={handleApply}
+        disabled={isApplying}
+      >
+        {isApplying ? 'Applying...' : 'Apply now'}
       </button>
 
       <p className="call-merchant" style={{ textAlign: 'center', color: '#333', fontWeight: 600, marginBottom: '16px' }}>

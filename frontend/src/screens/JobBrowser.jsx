@@ -1,12 +1,30 @@
 import { useState, useEffect } from 'react';
-
+import { api } from '../api';
 import StatusBar from './StatusBar';
-export default function JobBrowser({ onBack, onNavigate }) {
-  const [eduFilter, setEduFilter] = useState('10th');
-  const [catFilter, setCatFilter] = useState('food');
+
+export default function JobBrowser({ onBack, onNavigate, onSelectJob }) {
+  const [jobs, setJobs] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  const [eduFilter, setEduFilter] = useState('all');
+  const [catFilter, setCatFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [locationStr, setLocationStr] = useState('Locating...');
 
   useEffect(() => {
+    async function loadJobs() {
+      try {
+        const data = await api.fetchRecommendations();
+        setJobs(data || []);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadJobs();
+
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(async (position) => {
         try {
@@ -30,44 +48,30 @@ export default function JobBrowser({ onBack, onNavigate }) {
     }
   }, []);
 
-  const jobs = [
-    {
-      id: 1,
-      role: 'Delivery partner',
-      company: "Domino's · Ameerpet",
-      initial: 'D',
-      initialBg: '#EBDCB9',
-      initialColor: '#5C3E8A',
-      eduMatch: 'Inter OK',
-      shift: 'Evening',
-      distance: '1.2 km',
-      salary: '₹600/day'
-    },
-    {
-      id: 2,
-      role: 'Counter assistant',
-      company: "Bawarchi Bakery · SR Nagar",
-      initial: 'B',
-      initialBg: '#FAF8F5',
-      initialColor: '#2C2536',
-      eduMatch: '10th OK',
-      shift: 'Morning',
-      distance: '0.8 km',
-      salary: '₹400/day'
-    },
-    {
-      id: 3,
-      role: 'Helper / packing',
-      company: "Kirana Store · KPHB",
-      initial: 'K',
-      initialBg: '#FAF8F5',
-      initialColor: '#5C3E8A',
-      eduMatch: '10th OK',
-      shift: 'Full day',
-      distance: '0.5 km',
-      salary: '₹350/day'
+  const filteredJobs = jobs.filter(job => {
+    // Education Filter
+    if (eduFilter !== 'all') {
+      const req = (job.educationRequirement || '').toLowerCase();
+      if (eduFilter === '10th' && !req.includes('10th')) return false;
+      if (eduFilter === 'intermediate' && !req.includes('inter')) return false;
+      if (eduFilter === 'degree+' && !req.includes('degree')) return false;
     }
-  ];
+
+    // Category Filter
+    if (catFilter) {
+      const matchText = `${job.roleTitle} ${job.description} ${job.shopName}`.toLowerCase();
+      if (!matchText.includes(catFilter)) return false;
+    }
+
+    // Keyword Search
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchText = `${job.roleTitle} ${job.description} ${job.shopName} ${job.addressLocation}`.toLowerCase();
+      if (!matchText.includes(query)) return false;
+    }
+
+    return true;
+  });
 
   return (
     <div className="screen browser-container fade-in">
@@ -81,7 +85,12 @@ export default function JobBrowser({ onBack, onNavigate }) {
 
       <div className="search-bar">
         <span className="search-icon">🔍</span>
-        <input type="text" placeholder="Search role or shop name..." />
+        <input 
+          type="text" 
+          placeholder="Search role or shop name..." 
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
       </div>
 
       <div className="filters-section">
@@ -104,11 +113,12 @@ export default function JobBrowser({ onBack, onNavigate }) {
         <div className="pills-row no-margin secondary-filters">
           {['Food', 'Retail', 'Delivery', 'Hotel'].map(f => {
             const val = f.toLowerCase();
+            const isActive = catFilter === val;
             return (
               <span 
                 key={val} 
-                className={`pill filter-pill borderless ${catFilter === val ? 'active shadow' : ''}`}
-                onClick={() => setCatFilter(val)}
+                className={`pill filter-pill borderless ${isActive ? 'active shadow' : ''}`}
+                onClick={() => setCatFilter(isActive ? '' : val)}
               >
                 {f}
               </span>
@@ -118,28 +128,42 @@ export default function JobBrowser({ onBack, onNavigate }) {
       </div>
 
       <div className="jobs-list scrollable">
-        {jobs.map(job => (
-          <div key={job.id} className="job-card" onClick={() => onNavigate && onNavigate('detail')} style={{ cursor: 'pointer' }}>
+        {isLoading && <p style={{ textAlign: 'center', padding: '24px' }}>Loading jobs...</p>}
+        {error && <p style={{ color: '#9B2C2C', textAlign: 'center', padding: '24px' }}>⚠️ {error}</p>}
+        {!isLoading && !error && filteredJobs.length === 0 && (
+          <p style={{ textAlign: 'center', color: '#6B6075', padding: '24px' }}>No matching jobs found near you.</p>
+        )}
+
+        {filteredJobs.map(job => (
+          <div 
+            key={job.id} 
+            className="job-card" 
+            onClick={() => { 
+              onSelectJob(job); 
+              onNavigate && onNavigate('detail'); 
+            }} 
+            style={{ cursor: 'pointer' }}
+          >
             <div className="job-card-header">
               <div 
                 className="job-avatar" 
-                style={{ backgroundColor: job.initialBg, color: job.initialColor }}
+                style={{ backgroundColor: '#EBDCB9', color: '#5C3E8A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}
               >
-                {job.initial}
+                {(job.shopName || 'J')[0].toUpperCase()}
               </div>
               <div className="job-info">
-                <h3 className="job-role">{job.role}</h3>
+                <h3 className="job-role">{job.roleTitle}</h3>
                 <p className="job-company">
-                  {job.company} <span className="verified-badge-inline">✦ Verified</span>
+                  {job.shopName} · {job.addressLocation} <span className="verified-badge-inline">✦ Verified</span>
                 </p>
               </div>
-              <div className="job-badge">{job.eduMatch}</div>
+              <div className="job-badge" style={{ textTransform: 'capitalize' }}>{job.educationRequirement}</div>
             </div>
             
             <div className="job-details">
-              <span className="detail-item">⏰ {job.shift}</span>
-              <span className="detail-item">📍 {job.distance}</span>
-              <span className="detail-item gold-salary">💰 {job.salary}</span>
+              <span className="detail-item">⏰ {job.shiftTiming}</span>
+              <span className="detail-item">📍 {job.addressLocation ? (job.addressLocation.length > 15 ? job.addressLocation.slice(0, 15) + '...' : job.addressLocation) : 'Nearby'}</span>
+              <span className="detail-item gold-salary">💰 ₹{job.salary}/day</span>
             </div>
           </div>
         ))}

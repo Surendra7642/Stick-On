@@ -86,25 +86,35 @@ public class MerchantService {
                 "activeJobs", 0,
                 "totalApplicants", 0,
                 "hiredCount", 0,
-                "trustScore", 90
+                "trustScore", 90,
+                "listings", List.of()
             );
         }
 
         List<Job> activeJobs = jobRepository.findByMerchantId(profile.getId());
         int totalApplicants = 0;
         int hiredCount = 0;
+        List<Map<String, Object>> listings = new ArrayList<>();
         
         for (Job job : activeJobs) {
             List<Application> apps = applicationRepository.findByJobId(job.getId());
             totalApplicants += apps.size();
             hiredCount += apps.stream().filter(a -> a.getStatus() == Application.AppStatus.HIRED).count();
+            
+            listings.add(Map.of(
+                "id", job.getId(),
+                "roleTitle", job.getRoleTitle(),
+                "applicantCount", apps.size(),
+                "openSlots", job.getOpenSlots()
+            ));
         }
 
         return Map.of(
             "activeJobs", activeJobs.size(),
             "totalApplicants", totalApplicants,
             "hiredCount", hiredCount,
-            "trustScore", profile.getTrustScore()
+            "trustScore", profile.getTrustScore(),
+            "listings", listings
         );
     }
 
